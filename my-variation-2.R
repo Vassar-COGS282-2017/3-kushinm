@@ -1,20 +1,27 @@
 # use this file to generate your variation on the schelling model
 
+#2 main variations here- 1. I set up a difference criterion as well as a similarity criterion
+#its not really a minimum value, but more of a preference value for both
+#The second major change is I create a copy of the grid and divide it into 4 sectors
+#Agents want to move based on a "Stay" score. If the stay score falls below a certain level they 
+#become unhappy. The stay score is affected by similarity and difference preferences as well as 
+#how the agent feels about the sector its in. 
+#The model always seems to just go through 2 iterations though.
+
 rows <- 70 
 cols <- 70
-proportion.group.1 <- .2 
-empty <- .30
-min.similarity <- 7/8 
+proportion.group.1 <- .4 
+empty <- .40
+min.similarity <- 1/8 #now its no longer really min.similarity, but more of similarity preference
 min.difference<- 1/8
 
 area.grid <- function(rows, cols){
-data<-c(rep(6,(rows/2)*(cols/2)),
-        rep(7,(rows/2)*(cols/2)),
-        rep(8,(rows/2)*(cols/2)),
-        rep(9,(rows/2)*(cols/2)))
-area<- matrix(data,nrow=rows, ncol= cols)
+  data<-c(rep(6,(rows/2)*(cols/2)),
+          rep(7,(rows/2)*(cols/2)),
+          rep(8,(rows/2)*(cols/2)),
+          rep(9,(rows/2)*(cols/2)))
+  area<- matrix(data,nrow=rows, ncol= cols,byrow = T)
 }
-
 
 create.grid <- function(rows, cols, proportion.group.1, empty){
   pop.size.group.1 <- (rows*cols)*(1-empty)*proportion.group.1
@@ -87,62 +94,65 @@ diff.from.center<- function(grid.subset, center.val){
 }
 
 unhappy.agents <- function(grid, min.similarity, min.difference,locale){
- 
+  
   grid.copy <- grid
   for(row in 1:rows){
     for(col in 1:cols){
-      stay<- 3
       similarity.score <- similarity.to.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
       difference.score <- diff.from.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
-      if(is.na(similarity.score)){
+      if(grid.copy[row,col]==0){
         grid.copy[row,col] <- NA
       }
-if(is.na(similarity.score)==F){
-stay<- stay + (min.similarity-similarity.score) + (min.difference - difference.score)} #between 2 and -2 depending on parameters(?)
-if(grid[rows,cols]!=0){
-  if(grid[rows,cols]==1&&locale[rows,cols]==7){
-    stay<- stay+2
-  }
-  if(grid[rows,cols]==2&&locale[rows,cols]==7){
-    stay<- stay-2
-  }
-  if(grid[rows,cols]==1&&locale[rows,cols]==8){
-    stay<- stay-2
-  }
-  if(grid[rows,cols]==2&&locale[rows,cols]==8){
-    stay<- stay+2
-  }
-  if(grid[rows,cols]==1&&locale[rows,cols]==9){
-    stay<- stay+1
-  }
-  if(grid[rows,cols]==2&&locale[rows,cols]==9){
-    stay<- stay-1
-  }
-  if(grid[rows,cols]==1&&locale[rows,cols]==6){
-    stay<- stay-1
-  }
-  if(grid[rows,cols]==2&&locale[rows,cols]==6){
-    stay<- stay+1
-  }
+      if(is.na(similarity.score)==F){
+        stay<-3
+        stay<- stay - abs((min.similarity-similarity.score)) - abs((min.difference - difference.score)) #between 2 and -2 depending on parameters(?)
+        
+        if(grid[rows,cols]==1&&locale[rows,cols]==7){
+          stay<- stay+2
+        }
+        if(grid[rows,cols]==2&&locale[rows,cols]==7){
+          stay<- stay-2
+        }
+        if(grid[rows,cols]==1&&locale[rows,cols]==8){
+          stay<- stay-2
+        }
+        if(grid[rows,cols]==2&&locale[rows,cols]==8){
+          stay<- stay+2
+        }
+        if(grid[rows,cols]==1&&locale[rows,cols]==9){
+          stay<- stay+1
+        }
+        if(grid[rows,cols]==2&&locale[rows,cols]==9){
+          stay<- stay-1
+        }
+        if(grid[rows,cols]==1&&locale[rows,cols]==6){
+          stay<- stay-1
+        }
+        if(grid[rows,cols]==2&&locale[rows,cols]==6){
+          stay<- stay+1
+        }
+        
+        if(stay<=3){
+          grid.copy[rows,cols]=F
+        }else{
+          grid.copy[rows,cols]=T
+        }}
 
-}
-if(stay<=3){
-grid.copy[rows,cols]=F
-}else{
-grid.copy[rows,cols]=T
-}
+    }}      
   return(which(grid.copy==FALSE, arr.ind = T))
-}}}
+  }
 
-one.round <- function(grid, min.similarity){
+one.round <- function(grid, min.similarity,min.difference,locale){
   empty.spaces<- empty.locations(grid)
   unhappy<- unhappy.agents(grid, min.similarity,min.difference,locale)
   empty.spaces<- empty.spaces[ sample(1:nrow(empty.spaces)),  ]   
   for(i in 1:nrow(empty.spaces)){
-    if(i>nrow(unhappy)){break;}
+    if(i>nrow(unhappy)){
+      break}
     grid[empty.spaces[i,1], empty.spaces[i,2]]<- grid[unhappy[i,1], unhappy[i,2]]
     grid[unhappy[i,1], unhappy[i,2]]<- 0
   }
+  return(grid)
 }
 
 done <- FALSE 
@@ -150,14 +160,14 @@ grid <- create.grid(rows, cols, proportion.group.1, empty)
 locale <- area.grid(rows, cols)
 seg.tracker <- c(segregation(grid)) 
 while(!done){
-  new.grid <- one.round(grid, min.similarity)
-  seg.tracker <- c(seg.tracker, segregation(grid)) 
+  new.grid <- one.round(grid, min.similarity,min.difference,locale)
+  seg.tracker <- c(seg.tracker, segregation(grid))
   if(all(new.grid == grid)){ 
     done <- TRUE 
   } else {
-    grid <- new.grid 
-  }
-}
+    grid <-new.grid
+  } 
+} 
 layout(1) 
 visualize.grid(grid) 
 plot(seg.tracker)

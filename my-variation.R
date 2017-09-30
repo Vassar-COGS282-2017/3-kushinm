@@ -1,34 +1,34 @@
 # use this file to generate your variation on the schelling model
 
-rows <- 70 
-cols <- 70
+rows <- 40 
+cols <- 40
 proportion.group.1 <- .5 
 empty <- .30
-min.similarity <- 8/8 
-min.difference<- 2/8
+min.similarity <- 1/8 
+min.difference<- 3/8
 
 area.grid <- function(rows, cols){
-area<- matrix(nrow=rows, ncol= cols)
-for(i in 1:((rows/2))){
-for(j in 1:((cols/2))){
-area[i,j]<-6
-}
-}
-for(i in 1:((rows/2))){
-for(j in((cols/2)+1):cols){
-area[i,j]<-7
+  area<- matrix(nrow=rows, ncol= cols)
+  for(i in 1:((rows/2))){
+    for(j in 1:((cols/2))){
+      area[i,j]<-6
+    }
   }
-}
-for(i in ((rows/2)+1):rows){
-for(j in((cols/2)+1):cols){
-area[i,j]<-8
-}
-}
-for(i in ((rows/2)+1):rows){
-for(j in 1:((cols/2))){
-area[i,j]<-9
-}
-}
+  for(i in 1:((rows/2))){
+    for(j in((cols/2)+1):cols){
+      area[i,j]<-7
+    }
+  }
+  for(i in ((rows/2)+1):rows){
+    for(j in((cols/2)+1):cols){
+      area[i,j]<-8
+    }
+  }
+  for(i in ((rows/2)+1):rows){
+    for(j in 1:((cols/2))){
+      area[i,j]<-9
+    }
+  }
 }
 
 
@@ -47,7 +47,7 @@ create.grid <- function(rows, cols, proportion.group.1, empty){
 visualize.grid <- function(grid){
   image(grid, col=c('black','red','blue'), xaxs=NULL, yaxs=NULL, xaxt='n', yaxt='n')
 }
- 
+
 empty.locations <- function(grid){
   return(which(grid==0, arr.ind=T))
 }
@@ -95,11 +95,11 @@ segregation <- function(grid){
 
 
 diff.from.center<- function(grid.subset, center.val){
-if(center.val==0){
-return(NA)}
-diff<- sum(grid.subset!=center.val)-sum(grid.subset==0)
-same<- sum(grid.subset==center.val)-1
-return(diff/(diff+same))
+  if(center.val==0){
+    return(NA)}
+  diff<- sum(grid.subset!=center.val)-sum(grid.subset==0)
+  same<- sum(grid.subset==center.val)-1
+  return(diff/(diff+same))
 }
 
 unhappy.agents <- function(grid, min.similarity, min.difference){
@@ -108,17 +108,19 @@ unhappy.agents <- function(grid, min.similarity, min.difference){
     for(col in 1:cols){
       similarity.score <- similarity.to.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
       difference.score <- diff.from.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
-      if(is.na(similarity.score)){
+      if(is.na(similarity.score)&&is.na(difference.score)){
         grid.copy[row,col] <- NA
-      } else if(similarity.score>= min.similarity&& difference.score>= min.difference){
-        grid.copy[row,col] <- T}
-      else{grid.copy[row,col] <- F}
+      }else if(similarity.score>= min.similarity && difference.score>= min.difference){
+        grid.copy[row,col] <-TRUE
+        }
+      else{grid.copy[row,col] <- FALSE
       }
     }
+  }
   return(which(grid.copy==FALSE, arr.ind = T))
 }
 
-one.round <- function(grid, min.similarity){
+one.round <- function(grid, min.similarity, min.difference){
   empty.spaces<- empty.locations(grid)
   unhappy<- unhappy.agents(grid, min.similarity,min.difference)
   empty.spaces<- empty.spaces[ sample(1:nrow(empty.spaces)),  ]   
@@ -127,14 +129,14 @@ one.round <- function(grid, min.similarity){
     grid[empty.spaces[i,1], empty.spaces[i,2]]<- grid[unhappy[i,1], unhappy[i,2]]
     grid[unhappy[i,1], unhappy[i,2]]<- 0
   }
+  return(grid)
 }
 
 done <- FALSE 
 grid <- create.grid(rows, cols, proportion.group.1, empty)
-locales<- area.grid(rows, cols)
 seg.tracker <- c(segregation(grid)) 
 while(!done){
-  new.grid <- one.round(grid, min.similarity)
+  new.grid <- one.round(grid, min.similarity,min.difference)
   seg.tracker <- c(seg.tracker, segregation(grid)) 
   if(all(new.grid == grid)){ 
     done <- TRUE 
@@ -145,3 +147,6 @@ while(!done){
 layout(1) 
 visualize.grid(grid) 
 plot(seg.tracker)
+
+grid
+new.grid
