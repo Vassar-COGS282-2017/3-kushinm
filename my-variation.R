@@ -1,11 +1,18 @@
 # use this file to generate your variation on the schelling model
 
+#This variation introduces a rudimentary change, adding only a minimum difference preference
+#When minimum similarity is 0, segregation tends to decrease unsurprisingly, and when minimum diff
+#is 0, the segregation increases.
+# Setting values for both gets us results somewhere between the two aforementioned extremes
+#when both values are set higher than 2/8 or 3/8 simultaneously, the population appears not to
+#settle at any equilibrium
+
 rows <- 40 
 cols <- 40
 proportion.group.1 <- .5 
 empty <- .30
 min.similarity <- 1/8 
-min.difference<- 3/8
+min.difference<- 2/8
 
 area.grid <- function(rows, cols){
   area<- matrix(nrow=rows, ncol= cols)

@@ -3,19 +3,24 @@
 #2 main variations here- 1. I set up a difference criterion as well as a similarity criterion
 #its not really a minimum value, but more of a preference value for both
 #The second major change is I create a copy of the grid and divide it into 4 sectors
-#Agents want to move based on a "Stay" score. If the stay score falls below a certain level they 
+#Agents become "unhappy" based on a "Stay" score. If the stay score falls below a certain level they 
 #become unhappy. The stay score is affected by similarity and difference preferences as well as 
 #how the agent feels about the sector its in. 
-#The model always seems to just go through 2 iterations though.
+#The model always seems to just go through 2 to 3 iterations though, and the changes in segregation
+#are small. This could be because the criteria for wanting to move are too high, and also because
+#this is not an accurate model of how people decide to move, however introducing greater complexities
+#such as locale preference and similarity and difference preferences appears to be a good step
+#in making the model better reflect reality.
 
-rows <- 70 
-cols <- 70
-proportion.group.1 <- .4 
+rows <- 40 
+cols <- 40
+proportion.group.1 <- .5
 empty <- .40
-min.similarity <- 1/8 #now its no longer really min.similarity, but more of similarity preference
-min.difference<- 1/8
+min.similarity <- 3/8 #now its no longer really min.similarity, but more of similarity preference
+min.difference<- 2/8 #same here for difference, its not a threshold and more of a preference value
 
-area.grid <- function(rows, cols){
+area.grid <- function(rows, cols){ #creates a grid which defines "locales" where different agents have 
+  #different preferences when it comes to staying or moving
   data<-c(rep(6,(rows/2)*(cols/2)),
           rep(7,(rows/2)*(cols/2)),
           rep(8,(rows/2)*(cols/2)),
@@ -100,13 +105,20 @@ unhappy.agents <- function(grid, min.similarity, min.difference,locale){
     for(col in 1:cols){
       similarity.score <- similarity.to.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
       difference.score <- diff.from.center(grid[max(0, row-1):min(rows,row+1), max(0,col-1):min(cols,col+1)], grid[row,col])
-      if(grid.copy[row,col]==0){
+      if(grid.copy[row,col]==0){#ignores blank spaces
         grid.copy[row,col] <- NA
       }
       if(is.na(similarity.score)==F){
-        stay<-3
+        stay<-0.3 #Base stay rate; this determines whether an agent wants to move or stay
         stay<- stay - abs((min.similarity-similarity.score)) - abs((min.difference - difference.score)) #between 2 and -2 depending on parameters(?)
+        #the line above finds out how much the current situation of any agent deviates from their ideal preference
+        #This is subtracted from the stay variable making them more likely to move
         
+        #The following segment checks for the type of agent and the locale they are in and assigns a change
+        #in the stay variable accordingly. In some locales agent type 1 is very comfortable and type 2 is very
+        #uncomfortable. The opposite happens in another locale. And then there are two more locales where one
+        #type is mildly comfortable and the other is mildly uncomfortable. This is reflected by the amount
+        #subtracted or added to the stay variable.
         if(grid[rows,cols]==1&&locale[rows,cols]==7){
           stay<- stay+2
         }
@@ -132,7 +144,7 @@ unhappy.agents <- function(grid, min.similarity, min.difference,locale){
           stay<- stay+1
         }
         
-        if(stay<=3){
+        if(stay<=0.3){
           grid.copy[rows,cols]=F
         }else{
           grid.copy[rows,cols]=T
